@@ -464,29 +464,28 @@ const CoachDashboard = ({ t, lang, onBack, onLogout }) => {
   const [newOffer, setNewOffer] = useState({ name: "", price: 0, visible: true });
 
   useEffect(() => {
-    fetchData();
+    const loadData = async () => {
+      try {
+        const [res, crs, off, lnk, cpt, cds] = await Promise.all([
+          axios.get(`${API}/reservations`),
+          axios.get(`${API}/courses`),
+          axios.get(`${API}/offers`),
+          axios.get(`${API}/payment-links`),
+          axios.get(`${API}/concept`),
+          axios.get(`${API}/discount-codes`)
+        ]);
+        setReservations(res.data);
+        setCourses(crs.data);
+        setOffers(off.data);
+        setPaymentLinks(lnk.data);
+        setConcept(cpt.data);
+        setDiscountCodes(cds.data);
+      } catch (err) {
+        console.error("Error:", err);
+      }
+    };
+    loadData();
   }, []);
-
-  const fetchData = async () => {
-    try {
-      const [res, crs, off, lnk, cpt, cds] = await Promise.all([
-        axios.get(`${API}/reservations`),
-        axios.get(`${API}/courses`),
-        axios.get(`${API}/offers`),
-        axios.get(`${API}/payment-links`),
-        axios.get(`${API}/concept`),
-        axios.get(`${API}/discount-codes`)
-      ]);
-      setReservations(res.data);
-      setCourses(crs.data);
-      setOffers(off.data);
-      setPaymentLinks(lnk.data);
-      setConcept(cpt.data);
-      setDiscountCodes(cds.data);
-    } catch (err) {
-      console.error("Error:", err);
-    }
-  };
 
   const exportCSV = () => {
     const rows = [
