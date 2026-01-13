@@ -177,6 +177,88 @@ html, body {
   background: linear-gradient(180deg, rgba(0, 0, 0, 0.8) 0%, rgba(20, 8, 18, 0.9) 100%);
 }
 
+/* Offer Info Button (i icon) */
+.offer-info-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  background: rgba(0, 0, 0, 0.7);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  z-index: 10;
+}
+
+.offer-info-btn:hover {
+  background: rgba(217, 28, 210, 0.6);
+  transform: scale(1.1);
+  box-shadow: 0 0 10px rgba(217, 28, 210, 0.5);
+}
+
+/* Offer Tooltip */
+.offer-tooltip {
+  position: absolute;
+  top: 45px;
+  right: 8px;
+  max-width: 250px;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.95);
+  border: 1px solid rgba(217, 28, 210, 0.5);
+  border-radius: 8px;
+  color: white;
+  font-size: 12px;
+  line-height: 1.4;
+  z-index: 20;
+  box-shadow: 0 0 20px rgba(217, 28, 210, 0.3), 0 4px 15px rgba(0, 0, 0, 0.5);
+  animation: fadeIn 0.2s ease-out;
+}
+
+.offer-tooltip::before {
+  content: '';
+  position: absolute;
+  top: -6px;
+  right: 12px;
+  width: 10px;
+  height: 10px;
+  background: rgba(0, 0, 0, 0.95);
+  border-left: 1px solid rgba(217, 28, 210, 0.5);
+  border-top: 1px solid rgba(217, 28, 210, 0.5);
+  transform: rotate(45deg);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Delete Code Button Hover */
+.delete-code-btn:hover {
+  background: rgba(239, 68, 68, 0.4) !important;
+  transform: scale(1.05);
+}
+
+/* Courses Scroll Container */
+.courses-scroll-container {
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.courses-scroll-container::-webkit-scrollbar {
+  width: 4px;
+}
+
+.courses-scroll-container::-webkit-scrollbar-thumb {
+  background: rgba(139, 92, 246, 0.5);
+  border-radius: 2px;
+}
+
 /* Success Animation */
 .success-message {
   animation: slideIn 0.5s ease-out;
