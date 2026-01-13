@@ -1598,12 +1598,12 @@ function App() {
                 <input type="email" required placeholder={t('emailRequired')} value={userEmail} onChange={e => handleEmailChange(e.target.value)} className="w-full p-3 rounded-lg neon-input" data-testid="user-email-input" autoComplete="email" />
                 <input type="tel" required placeholder={t('whatsappRequired')} value={userWhatsapp} onChange={e => setUserWhatsapp(e.target.value)} className="w-full p-3 rounded-lg neon-input" data-testid="user-whatsapp-input" autoComplete="tel" />
                 
-                {/* Promo code input */}
+                {/* Promo code input - Accept any case (minuscules/majuscules) */}
                 <div>
-                  <input type="text" placeholder={t('promoCode')} value={discountCode} onChange={e => setDiscountCode(e.target.value.toUpperCase())}
+                  <input type="text" placeholder={t('promoCode')} value={discountCode} onChange={e => setDiscountCode(e.target.value)}
                     className={`w-full p-3 rounded-lg ${appliedDiscount ? 'valid-code' : 'neon-input'}`} data-testid="discount-code-input" autoComplete="off" />
                   
-                  {/* INTERFACE: Message clair sous le champ code promo */}
+                  {/* FEEDBACK VISUEL: Message clair sous le champ code promo */}
                   {promoMessage.text && (
                     <p className={`mt-2 text-sm font-medium ${promoMessage.type === 'success' ? 'text-green-400' : promoMessage.type === 'error' ? 'text-red-400' : 'text-yellow-400'}`} data-testid="promo-message">
                       {promoMessage.text}
