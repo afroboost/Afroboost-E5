@@ -197,11 +197,7 @@ const CoachDashboard = ({ config, onBack, onLogout }) => {
   const [newCodeValue, setNewCodeValue] = useState("");
   const [newCodeAssignedEmail, setNewCodeAssignedEmail] = useState("");
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       const [resRes, coursesRes, offersRes, linksRes, conceptRes, codesRes] = await Promise.all([
         axios.get(`${API}/reservations`),
