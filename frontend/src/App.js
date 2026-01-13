@@ -1421,27 +1421,36 @@ function App() {
       appliedDiscount
     };
 
-    // Free reservation with 100% discount
-    if (appliedDiscount && isDiscountFree(appliedDiscount)) {
+    // DYNAMISME DU BOUTON: Si total = 0 (100% gratuit), réservation directe sans paiement
+    if (totalPrice === 0) {
       setLoading(true);
       try {
-        // Create user if needed
+        // Create user
         try { await axios.post(`${API}/users`, { name: userName, email: userEmail, whatsapp: userWhatsapp }); }
         catch (err) { console.error("User creation error:", err); }
         
+        // Create reservation directly (no payment needed)
         const res = await axios.post(`${API}/reservations`, reservation);
-        await axios.post(`${API}/discount-codes/${appliedDiscount.id}/use`);
+        
+        // Mark discount code as used
+        if (appliedDiscount) {
+          await axios.post(`${API}/discount-codes/${appliedDiscount.id}/use`);
+        }
+        
+        // MÉMORISATION CLIENT: Save client info for next visit
+        saveClientInfo(userName, userEmail, userWhatsapp);
+        
         setLastReservation(res.data);
         sendWhatsAppNotification(res.data, true);
         sendWhatsAppNotification(res.data, false);
         setShowSuccess(true);
-        resetForm();
+        resetFormKeepClient();
       } catch (err) { console.error(err); }
       setLoading(false);
       return;
     }
 
-    // Check if payment is configured
+    // PAID RESERVATION: Check if payment is configured
     if (!paymentLinks.stripe?.trim() && !paymentLinks.paypal?.trim() && !paymentLinks.twint?.trim()) {
       setValidationMessage(t('noPaymentConfigured'));
       setTimeout(() => setValidationMessage(""), 4000);
