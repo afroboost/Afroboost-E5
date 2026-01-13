@@ -1367,8 +1367,8 @@ function App() {
           <p className="concept-glow max-w-2xl mx-auto text-white opacity-80" style={{ fontSize: '15px' }}>{concept.description || t('conceptDefault')}</p>
         </div>
 
-        {/* Hero Media - YouTube, Vimeo, Image, Video */}
-        {concept.heroImageUrl && (
+        {/* Hero Media - YouTube, Vimeo, Image, Video - Only show if URL is valid */}
+        {concept.heroImageUrl && concept.heroImageUrl.trim() !== '' && (
           <MediaDisplay url={concept.heroImageUrl} className="hero-media-container mb-8" />
         )}
 
