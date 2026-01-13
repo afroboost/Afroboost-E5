@@ -197,30 +197,33 @@ const CoachDashboard = ({ config, onBack, onLogout }) => {
   const [newCodeValue, setNewCodeValue] = useState("");
   const [newCodeAssignedEmail, setNewCodeAssignedEmail] = useState("");
 
-  const fetchData = useCallback(async () => {
-    try {
-      const [resRes, coursesRes, offersRes, linksRes, conceptRes, codesRes] = await Promise.all([
-        axios.get(`${API}/reservations`),
-        axios.get(`${API}/courses`),
-        axios.get(`${API}/offers`),
-        axios.get(`${API}/payment-links`),
-        axios.get(`${API}/concept`),
-        axios.get(`${API}/discount-codes`)
-      ]);
-      setReservations(resRes.data);
-      setCourses(coursesRes.data);
-      setOffers(offersRes.data);
-      setPaymentLinks(linksRes.data);
-      setConcept(conceptRes.data);
-      setDiscountCodes(codesRes.data);
-    } catch (err) {
-      console.error("Error fetching coach data:", err);
-    }
-  }, []);
-
   useEffect(() => {
+    let isMounted = true;
+    const fetchData = async () => {
+      try {
+        const [resRes, coursesRes, offersRes, linksRes, conceptRes, codesRes] = await Promise.all([
+          axios.get(`${API}/reservations`),
+          axios.get(`${API}/courses`),
+          axios.get(`${API}/offers`),
+          axios.get(`${API}/payment-links`),
+          axios.get(`${API}/concept`),
+          axios.get(`${API}/discount-codes`)
+        ]);
+        if (isMounted) {
+          setReservations(resRes.data);
+          setCourses(coursesRes.data);
+          setOffers(offersRes.data);
+          setPaymentLinks(linksRes.data);
+          setConcept(conceptRes.data);
+          setDiscountCodes(codesRes.data);
+        }
+      } catch (err) {
+        console.error("Error fetching coach data:", err);
+      }
+    };
     fetchData();
-  }, [fetchData]);
+    return () => { isMounted = false; };
+  }, []);
 
   const exportUsersCSV = () => {
     const rows = [
