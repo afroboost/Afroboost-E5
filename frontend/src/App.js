@@ -1848,7 +1848,11 @@ const CoachDashboard = ({ t, lang, onBack, onLogout }) => {
         setCampaigns(res.data);
       } catch (err) { console.error("Error loading campaigns:", err); }
     };
-    if (tab === "campaigns") loadCampaigns();
+    if (tab === "campaigns") {
+      loadCampaigns();
+      loadAIConfig();
+      loadAILogs();
+    }
   }, [tab]);
 
   // Get unique contacts from users and reservations
