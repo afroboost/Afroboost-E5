@@ -174,20 +174,26 @@ Application de réservation de casques audio pour des cours de fitness Afroboost
    - Ouvre le lien Google dans un nouvel onglet
    - Masqué si aucun lien configuré
 
-### Gestionnaire de Campagnes Opérationnel (15 Jan 2026)
-1. ✅ **Compteur de clients ciblés**:
-   - Affichage "👥 Nombre de clients ciblés : X" en rose
-   - Détail "📧 X avec email • 📱 X avec WhatsApp"
-   - Extraction automatique depuis réservations + users
+### Intégration EmailJS (15 Jan 2026)
+1. ✅ **Service EmailJS créé**:
+   - `/services/emailService.js` - Envoi automatisé avec @emailjs/browser
+   - Fonctions: `sendEmail`, `sendBulkEmails`, `testEmailJSConfig`
+   - Stockage config dans localStorage (pas de backend)
 
-2. ✅ **Mode Envoi Direct par Canal**:
-   - **📧 Email Groupé (BCC)**: Génère un lien mailto: avec premier email en TO et reste en BCC pour confidentialité
-   - **📱 WhatsApp**: Navigation contact par contact avec boutons "Préc./Suivant", affiche nom du contact actuel
-   - **📸 Instagram DM**: Copie le message dans le presse-papier + ouvre le profil Instagram configuré
+2. ✅ **Interface Admin EmailJS**:
+   - Panneau de configuration avec 3 champs (Service ID, Template ID, Public Key)
+   - Bouton "💾 Sauvegarder" + "🧪 Tester" avec email de test
+   - Instructions pour créer un template EmailJS
+   - Indicateur "✅ Configuré" / "⚠️ Non configuré"
 
-3. ✅ **Compatibilité Vercel**:
-   - Fonctions d'extraction de données pures (useMemo)
-   - Pas de dépendances serveur pour l'envoi direct
+3. ✅ **Envoi automatique avec progression**:
+   - Barre de progression "Envoi en cours : X/Total"
+   - Affichage du nom du contact en cours d'envoi
+   - Récapitulatif final "X envoyés / X échecs"
+   - Délai de 200ms entre les envois (anti rate-limiting)
+
+4. ✅ **Fallback conservé**:
+   - Lien "📧 Ouvrir client email (BCC)" toujours disponible
 
 ---
 
