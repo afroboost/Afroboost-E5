@@ -3411,6 +3411,23 @@ function App() {
                 <input type="email" required placeholder={t('emailRequired')} value={userEmail} onChange={e => handleEmailChange(e.target.value)} className="w-full p-3 rounded-lg neon-input" data-testid="user-email-input" autoComplete="email" />
                 <input type="tel" required placeholder={t('whatsappRequired')} value={userWhatsapp} onChange={e => setUserWhatsapp(e.target.value)} className="w-full p-3 rounded-lg neon-input" data-testid="user-whatsapp-input" autoComplete="tel" />
                 
+                {/* Champ Adresse - Affiché uniquement pour les produits physiques */}
+                {selectedOffer?.isProduct && (
+                  <div className="border border-purple-500/30 rounded-lg p-3 bg-purple-900/20">
+                    <p className="text-xs text-purple-400 mb-2">📦 Produit physique - Adresse de livraison requise</p>
+                    <input 
+                      type="text" 
+                      required 
+                      placeholder="Adresse complète (rue, numéro, code postal, ville)" 
+                      value={shippingAddress} 
+                      onChange={e => setShippingAddress(e.target.value)} 
+                      className="w-full p-3 rounded-lg neon-input" 
+                      data-testid="shipping-address-input" 
+                      autoComplete="street-address" 
+                    />
+                  </div>
+                )}
+                
                 {/* Promo code input - Accept any case (minuscules/majuscules) */}
                 <div>
                   <input type="text" placeholder={t('promoCode')} value={discountCode} onChange={e => setDiscountCode(e.target.value)}
