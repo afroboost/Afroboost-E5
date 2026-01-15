@@ -3172,6 +3172,7 @@ function App() {
       userName: userName,
       userEmail: userEmail, 
       userWhatsapp: userWhatsapp,
+      shippingAddress: selectedOffer?.isProduct ? shippingAddress : null, // Adresse si produit physique
       courseId: selectedCourse.id, 
       courseName: selectedCourse.name,
       courseTime: selectedCourse.time, 
@@ -3184,7 +3185,8 @@ function App() {
       discountCode: appliedDiscount?.code || null,
       discountType: appliedDiscount?.type || null,
       discountValue: appliedDiscount?.value || null,
-      appliedDiscount
+      appliedDiscount,
+      isProduct: selectedOffer?.isProduct || false
     };
 
     // DYNAMISME DU BOUTON: Si total = 0 (100% gratuit), réservation directe sans paiement
