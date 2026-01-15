@@ -10,6 +10,13 @@ import {
   sendBulkEmails,
   testEmailJSConfig 
 } from "./services/emailService";
+import {
+  getWhatsAppConfig,
+  saveWhatsAppConfig,
+  isWhatsAppConfigured,
+  sendBulkWhatsApp,
+  testWhatsAppConfig
+} from "./services/whatsappService";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
