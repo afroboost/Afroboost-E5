@@ -218,6 +218,8 @@ Application de réservation de casques audio pour des cours de fitness Afroboost
 - [x] Affichage correct des images d'offres
 - [x] Cartes non tronquées
 - [x] Architecture config Vercel initiée
+- [x] Bouton "Voir les avis Google" côté client
+- [x] Champ "Lien des avis Google" dans Mode Coach
 
 ### P1 - À faire
 - [ ] Refactoring App.js en composants modulaires (fichier > 3000 lignes)
