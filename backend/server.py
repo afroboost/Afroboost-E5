@@ -1092,6 +1092,127 @@ async def test_ai_response(data: dict):
         logger.error(f"AI test error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
+# --- Leads Routes (Widget IA) ---
+@api_router.get("/leads")
+async def get_leads():
+    """Récupère tous les leads capturés via le widget IA"""
+    leads = await db.leads.find({}, {"_id": 0}).sort("createdAt", -1).to_list(500)
+    return leads
+
+@api_router.post("/leads")
+async def create_lead(lead: Lead):
+    """Enregistre un nouveau lead depuis le widget IA"""
+    from datetime import datetime, timezone
+    
+    lead_data = lead.model_dump()
+    lead_data["id"] = f"lead_{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}_{lead.whatsapp[-4:]}"
+    lead_data["createdAt"] = datetime.now(timezone.utc).isoformat()
+    
+    # Vérifier si le lead existe déjà (même email ou WhatsApp)
+    existing = await db.leads.find_one({
+        "$or": [
+            {"email": lead.email},
+            {"whatsapp": lead.whatsapp}
+        ]
+    })
+    
+    if existing:
+        # Mettre à jour le lead existant
+        await db.leads.update_one(
+            {"id": existing["id"]},
+            {"$set": {"firstName": lead.firstName, "updatedAt": lead_data["createdAt"]}}
+        )
+        existing["firstName"] = lead.firstName
+        return {**existing, "_id": None}
+    
+    await db.leads.insert_one(lead_data)
+    return {k: v for k, v in lead_data.items() if k != "_id"}
+
+@api_router.delete("/leads/{lead_id}")
+async def delete_lead(lead_id: str):
+    """Supprime un lead"""
+    result = await db.leads.delete_one({"id": lead_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    return {"success": True}
+
+# --- Chat IA Widget ---
+@api_router.post("/chat")
+async def chat_with_ai(data: ChatMessage):
+    """Chat avec l'IA depuis le widget client"""
+    import time
+    start_time = time.time()
+    
+    message = data.message
+    first_name = data.firstName
+    
+    if not message:
+        raise HTTPException(status_code=400, detail="Message requis")
+    
+    # Récupérer la config IA
+    ai_config = await db.ai_config.find_one({"id": "ai_config"}, {"_id": 0})
+    if not ai_config:
+        ai_config = AIConfig().model_dump()
+    
+    if not ai_config.get("enabled"):
+        return {"response": "L'assistant IA est actuellement désactivé. Veuillez contacter le coach directement.", "responseTime": 0}
+    
+    # Construire le contexte avec le prénom
+    context = ""
+    if first_name:
+        context += f"\n\nLe client qui te parle s'appelle {first_name}. Utilise son prénom dans ta réponse pour être chaleureux."
+    
+    # Récupérer les infos du concept pour contexte
+    concept = await db.concept.find_one({"id": "concept"}, {"_id": 0})
+    if concept:
+        context += f"\n\nContexte Afroboost: {concept.get('description', '')}"
+    
+    # Récupérer les cours disponibles
+    courses = await db.courses.find({"visible": {"$ne": False}}, {"_id": 0}).to_list(10)
+    if courses:
+        courses_info = "\n".join([f"- {c.get('name', '')} le {c.get('date', '')} à {c.get('time', '')}" for c in courses[:5]])
+        context += f"\n\nCours disponibles:\n{courses_info}"
+    
+    full_system_prompt = ai_config.get("systemPrompt", "Tu es l'assistant IA d'Afroboost, une application de réservation de cours de fitness.") + context
+    
+    try:
+        from emergentintegrations.llm.chat import LlmChat, UserMessage
+        
+        emergent_key = os.environ.get("EMERGENT_LLM_KEY")
+        if not emergent_key:
+            return {"response": "Configuration IA incomplète. Contactez l'administrateur.", "responseTime": 0}
+        
+        model = ai_config.get("model", "gpt-4o-mini")
+        provider = ai_config.get("provider", "openai")
+        
+        chat = LlmChat(
+            api_key=emergent_key,
+            model=model,
+            provider=provider,
+            system_message=full_system_prompt
+        )
+        
+        ai_response = await chat.send_async(UserMessage(message))
+        response_time = round(time.time() - start_time, 2)
+        
+        # Log la conversation
+        await db.ai_logs.insert_one({
+            "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+            "from": f"widget_{first_name or 'anonymous'}",
+            "message": message,
+            "response": ai_response,
+            "responseTime": response_time
+        })
+        
+        return {
+            "response": ai_response,
+            "responseTime": response_time
+        }
+        
+    except Exception as e:
+        logger.error(f"Chat AI error: {str(e)}")
+        return {"response": "Désolé, une erreur s'est produite. Veuillez réessayer.", "responseTime": 0}
+
 # Include router
 app.include_router(api_router)
 
