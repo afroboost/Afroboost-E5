@@ -2209,6 +2209,155 @@ const CoachDashboard = ({ t, lang, onBack, onLogout }) => {
     setEmailSendingProgress(null);
   };
 
+  // === WHATSAPP API FUNCTIONS ===
+  
+  // Sauvegarder la configuration WhatsApp
+  const handleSaveWhatsAppConfig = () => {
+    const success = saveWhatsAppConfig(whatsAppConfig);
+    if (success) {
+      setShowWhatsAppConfig(false);
+      alert('✅ Configuration WhatsApp API sauvegardée !');
+    } else {
+      alert('❌ Erreur lors de la sauvegarde');
+    }
+  };
+
+  // Tester la configuration WhatsApp
+  const handleTestWhatsApp = async () => {
+    if (!testWhatsAppNumber) {
+      alert('Veuillez entrer un numéro de téléphone pour le test');
+      return;
+    }
+    
+    setTestWhatsAppStatus('sending');
+    const result = await testWhatsAppConfig(testWhatsAppNumber);
+    
+    if (result.success) {
+      setTestWhatsAppStatus('success');
+      setTimeout(() => setTestWhatsAppStatus(null), 5000);
+    } else {
+      setTestWhatsAppStatus('error');
+      alert(`❌ Erreur: ${result.error}`);
+      setTimeout(() => setTestWhatsAppStatus(null), 3000);
+    }
+  };
+
+  // Envoyer la campagne WhatsApp automatiquement
+  const handleSendWhatsAppCampaign = async () => {
+    if (!isWhatsAppConfigured()) {
+      alert('⚠️ WhatsApp API non configuré. Cliquez sur "⚙️ Config" pour ajouter vos clés Twilio.');
+      return;
+    }
+
+    const contacts = getContactsForDirectSend();
+    const phoneContacts = contacts
+      .filter(c => c.phone)
+      .map(c => ({ phone: c.phone, name: c.name }));
+
+    if (phoneContacts.length === 0) {
+      alert('Aucun contact avec numéro de téléphone');
+      return;
+    }
+
+    if (!newCampaign.message.trim()) {
+      alert('Veuillez saisir un message');
+      return;
+    }
+
+    if (!window.confirm(`Envoyer ${phoneContacts.length} WhatsApp automatiquement ?\n\n⚠️ Cette action utilise votre quota Twilio et est irréversible.`)) {
+      return;
+    }
+
+    setWhatsAppSendingResults(null);
+    setWhatsAppSendingProgress({ current: 0, total: phoneContacts.length, status: 'starting' });
+
+    const results = await sendBulkWhatsApp(
+      phoneContacts,
+      {
+        message: newCampaign.message,
+        mediaUrl: newCampaign.mediaUrl
+      },
+      (current, total, status, name) => {
+        setWhatsAppSendingProgress({ current, total, status, name });
+      }
+    );
+
+    setWhatsAppSendingResults(results);
+    setWhatsAppSendingProgress(null);
+  };
+
+  // === ENVOI GROUPÉ (EMAIL + WHATSAPP) ===
+  const handleBulkSendCampaign = async () => {
+    const contacts = getContactsForDirectSend();
+    const emailContacts = contacts
+      .filter(c => c.email && c.email.includes('@'))
+      .map(c => ({ email: c.email, name: c.name }));
+    const phoneContacts = contacts
+      .filter(c => c.phone)
+      .map(c => ({ phone: c.phone, name: c.name }));
+
+    const hasEmail = isEmailJSConfigured() && emailContacts.length > 0;
+    const hasWhatsApp = isWhatsAppConfigured() && phoneContacts.length > 0;
+
+    if (!hasEmail && !hasWhatsApp) {
+      alert('⚠️ Aucun canal configuré ou aucun contact disponible.\n\nConfigurez EmailJS et/ou WhatsApp API.');
+      return;
+    }
+
+    if (!newCampaign.message.trim()) {
+      alert('Veuillez saisir un message');
+      return;
+    }
+
+    const channels = [];
+    if (hasEmail) channels.push(`${emailContacts.length} emails`);
+    if (hasWhatsApp) channels.push(`${phoneContacts.length} WhatsApp`);
+
+    if (!window.confirm(`Envoi automatique :\n• ${channels.join('\n• ')}\n\n⚠️ Cette action est irréversible.`)) {
+      return;
+    }
+
+    setBulkSendingInProgress(true);
+    setBulkSendingResults(null);
+    
+    const results = { email: null, whatsapp: null };
+
+    // Envoyer les emails d'abord
+    if (hasEmail) {
+      setBulkSendingProgress({ channel: 'email', current: 0, total: emailContacts.length, name: '' });
+      results.email = await sendBulkEmails(
+        emailContacts,
+        {
+          name: newCampaign.name || 'Afroboost - Message',
+          message: newCampaign.message,
+          mediaUrl: newCampaign.mediaUrl
+        },
+        (current, total, status, name) => {
+          setBulkSendingProgress({ channel: 'email', current, total, name });
+        }
+      );
+    }
+
+    // Puis les WhatsApp
+    if (hasWhatsApp) {
+      setBulkSendingProgress({ channel: 'whatsapp', current: 0, total: phoneContacts.length, name: '' });
+      results.whatsapp = await sendBulkWhatsApp(
+        phoneContacts,
+        {
+          message: newCampaign.message,
+          mediaUrl: newCampaign.mediaUrl
+        },
+        (current, total, status, name) => {
+          setBulkSendingProgress({ channel: 'whatsapp', current, total, name });
+        }
+      );
+    }
+
+    setBulkSendingProgress(null);
+    setBulkSendingInProgress(false);
+    setBulkSendingResults(results);
+  };
+
   // Stats des contacts pour envoi - calcul direct sans fonction
   const contactStats = useMemo(() => {
     const contacts = newCampaign.targetType === "selected" 
