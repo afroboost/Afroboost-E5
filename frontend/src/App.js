@@ -17,6 +17,9 @@ import {
   sendBulkWhatsApp,
   testWhatsAppConfig
 } from "./services/whatsappService";
+import {
+  setLastMediaUrl as setLastMediaUrlService
+} from "./services/aiResponseService";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
