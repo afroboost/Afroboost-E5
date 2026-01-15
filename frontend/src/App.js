@@ -4815,9 +4815,44 @@ function App() {
   if (showCoachLogin) return <CoachLoginModal t={t} onLogin={() => { setCoachMode(true); setShowCoachLogin(false); }} onCancel={() => setShowCoachLogin(false)} />;
   if (coachMode) return <CoachDashboard t={t} lang={lang} onBack={() => setCoachMode(false)} onLogout={() => setCoachMode(false)} />;
 
-  // Filtrer les offres et cours invisibles pour le client
-  const visibleOffers = offers.filter(o => o.visible !== false);
-  const visibleCourses = courses.filter(c => c.visible !== false);
+  // Filtrer les offres et cours selon visibilité, filtre actif et recherche
+  const baseOffers = offers.filter(o => o.visible !== false);
+  const baseCourses = courses.filter(c => c.visible !== false);
+  
+  // Appliquer le filtre de catégorie
+  let visibleOffers = baseOffers.filter(offer => {
+    if (activeFilter === 'all') return true;
+    if (activeFilter === 'sessions') return !offer.isProduct;
+    if (activeFilter === 'offers') return !offer.isProduct && (
+      offer.name?.toLowerCase().includes('carte') || 
+      offer.name?.toLowerCase().includes('abonnement') ||
+      offer.name?.toLowerCase().includes('pack')
+    );
+    if (activeFilter === 'shop') return offer.isProduct === true;
+    return true;
+  });
+  
+  // Appliquer le filtre de recherche textuelle
+  if (searchQuery.trim()) {
+    const query = searchQuery.toLowerCase().trim();
+    visibleOffers = visibleOffers.filter(offer => 
+      (offer.name?.toLowerCase() || '').includes(query) ||
+      (offer.description?.toLowerCase() || '').includes(query)
+    );
+  }
+  
+  // Filtrer les cours selon le filtre et la recherche
+  let visibleCourses = baseCourses;
+  if (activeFilter === 'shop' || activeFilter === 'offers') {
+    visibleCourses = []; // Masquer les cours sur Shop et Offres
+  } else if (searchQuery.trim()) {
+    const query = searchQuery.toLowerCase().trim();
+    visibleCourses = baseCourses.filter(course => 
+      (course.name?.toLowerCase() || '').includes(query) ||
+      (course.locationName?.toLowerCase() || '').includes(query)
+    );
+  }
+  
   const totalPrice = calculateTotal();
 
   return (
