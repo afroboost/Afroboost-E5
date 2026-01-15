@@ -701,16 +701,20 @@ const OfferCard = ({ offer, selected, onClick }) => {
   );
 };
 
-// Offer Card for Horizontal Slider - With LED effect, Info icon, and Zoom
+// Offer Card for Horizontal Slider - With LED effect, Info icon, Zoom and Image Carousel
 const OfferCardSlider = ({ offer, selected, onClick }) => {
   const [showDescription, setShowDescription] = useState(false);
   const [showZoom, setShowZoom] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const defaultImage = "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=400&h=250&fit=crop";
   
-  // Utiliser images[0] en priorité, puis thumbnail, puis image par défaut
-  const mainImage = (offer.images && offer.images.length > 0 && offer.images[0]) 
-    ? offer.images[0] 
-    : (offer.thumbnail || defaultImage);
+  // Liste des images disponibles
+  const images = (offer.images && offer.images.length > 0) 
+    ? offer.images.filter(img => img && img.trim()) 
+    : (offer.thumbnail ? [offer.thumbnail] : [defaultImage]);
+  
+  const currentImage = images[currentImageIndex] || defaultImage;
+  const hasMultipleImages = images.length > 1;
   
   const toggleDescription = (e) => {
     e.stopPropagation();
@@ -722,21 +726,50 @@ const OfferCardSlider = ({ offer, selected, onClick }) => {
     setShowZoom(!showZoom);
   };
   
+  const prevImage = (e) => {
+    e.stopPropagation();
+    setCurrentImageIndex(prev => prev > 0 ? prev - 1 : images.length - 1);
+  };
+  
+  const nextImage = (e) => {
+    e.stopPropagation();
+    setCurrentImageIndex(prev => prev < images.length - 1 ? prev + 1 : 0);
+  };
+  
   return (
     <>
-      {/* Zoom Modal */}
+      {/* Zoom Modal with Carousel */}
       {showZoom && (
         <div 
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/90"
           onClick={toggleZoom}
         >
-          <div className="relative max-w-4xl max-h-[90vh] p-4">
+          <div className="relative max-w-4xl max-h-[90vh] p-4" onClick={e => e.stopPropagation()}>
             <img 
-              src={mainImage} 
+              src={currentImage} 
               alt={offer.name} 
               className="max-w-full max-h-[80vh] object-contain rounded-xl"
               style={{ boxShadow: '0 0 40px rgba(217, 28, 210, 0.5)' }}
             />
+            
+            {/* Flèches dans le zoom si plusieurs images */}
+            {hasMultipleImages && (
+              <>
+                <button 
+                  onClick={prevImage}
+                  className="absolute left-6 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-black/70 text-white flex items-center justify-center hover:bg-pink-600 text-2xl"
+                >
+                  ‹
+                </button>
+                <button 
+                  onClick={nextImage}
+                  className="absolute right-6 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-black/70 text-white flex items-center justify-center hover:bg-pink-600 text-2xl"
+                >
+                  ›
+                </button>
+              </>
+            )}
+            
             <button 
               className="absolute top-2 right-2 w-10 h-10 rounded-full bg-black/50 text-white text-2xl hover:bg-black/80 flex items-center justify-center"
               onClick={toggleZoom}
@@ -744,6 +777,11 @@ const OfferCardSlider = ({ offer, selected, onClick }) => {
               ×
             </button>
             <p className="text-center text-white mt-4 text-lg font-semibold">{offer.name}</p>
+            
+            {/* Indicateur de position dans le zoom */}
+            {hasMultipleImages && (
+              <p className="text-center text-pink-400 text-sm mt-2">{currentImageIndex + 1} / {images.length}</p>
+            )}
           </div>
         </div>
       )}
@@ -767,17 +805,47 @@ const OfferCardSlider = ({ offer, selected, onClick }) => {
           }}
           data-testid={`offer-card-${offer.id}`}
         >
-          {/* Image Section */}
+          {/* Image Section with Carousel */}
           <div style={{ position: 'relative', height: '180px', overflow: 'hidden' }}>
             {!showDescription ? (
               <>
                 <img 
-                  src={mainImage} 
+                  src={currentImage} 
                   alt={offer.name} 
                   className="w-full h-full"
                   style={{ objectFit: 'cover', objectPosition: 'center' }}
                   onError={(e) => { e.target.src = defaultImage; }}
                 />
+                
+                {/* Flèches de navigation si plusieurs images */}
+                {hasMultipleImages && (
+                  <>
+                    <button 
+                      onClick={prevImage}
+                      className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-pink-600 text-lg"
+                      style={{ zIndex: 15 }}
+                    >
+                      ‹
+                    </button>
+                    <button 
+                      onClick={nextImage}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-pink-600 text-lg"
+                      style={{ zIndex: 15 }}
+                    >
+                      ›
+                    </button>
+                    {/* Indicateurs de position (points) */}
+                    <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1" style={{ zIndex: 15 }}>
+                      {images.map((_, idx) => (
+                        <div 
+                          key={idx} 
+                          onClick={(e) => { e.stopPropagation(); setCurrentImageIndex(idx); }}
+                          className={`w-2 h-2 rounded-full cursor-pointer transition-all ${idx === currentImageIndex ? 'bg-pink-500 scale-125' : 'bg-white/50 hover:bg-white/80'}`}
+                        />
+                      ))}
+                    </div>
+                  </>
+                )}
                 
                 {/* Zoom Button (Loupe) - Top Left */}
                 <div 
