@@ -7,6 +7,13 @@ export { OfferCard, OfferCardSlider } from './OfferCard';
 // === SCANNER QR ===
 export { QRScannerModal } from './QRScanner';
 
+// === NAVIGATION & RECHERCHE ===
+export { 
+  NavigationBar, 
+  useNavigation, 
+  LandingSectionSelector 
+} from './SearchBar';
+
 // === CAMPAGNES ADMIN ===
 export { 
   useContactStats,
