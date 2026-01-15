@@ -3138,7 +3138,7 @@ function App() {
     setPendingReservation(null); setSelectedCourse(null); setSelectedDate(null);
     setSelectedOffer(null); setSelectedSession(null); setDiscountCode(""); 
     setHasAcceptedTerms(false); setAppliedDiscount(null); setPromoMessage({ type: '', text: '' });
-    setQuantity(1); // Reset quantité
+    setQuantity(1); setShippingAddress(""); // Reset quantité et adresse
     // Keep userName, userEmail, userWhatsapp for convenience
   };
 
