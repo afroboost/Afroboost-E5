@@ -2143,6 +2143,7 @@ function App() {
   const [selectedSession, setSelectedSession] = useState(null);
   const [quantity, setQuantity] = useState(1); // Quantité pour achats multiples
   const [showTermsModal, setShowTermsModal] = useState(false); // Modal CGV
+  const [selectedVariants, setSelectedVariants] = useState({}); // Variantes sélectionnées { size: "M", color: "Noir" }
 
   const [userName, setUserName] = useState("");
   const [userEmail, setUserEmail] = useState("");
