@@ -2809,18 +2809,18 @@ function App() {
   // Les produits physiques sont COMPLÈTEMENT INDÉPENDANTS des cours
   // =====================================================
   
-  // 1. PRODUITS PHYSIQUES (isProduct: true) - Toujours visibles si visible !== false
+  // 1. PRODUITS PHYSIQUES (isProduct: true) - Visibles UNIQUEMENT si visible === true
   const visibleProducts = offers.filter(o => 
-    o.isProduct === true && o.visible !== false
+    o.isProduct === true && o.visible === true
   );
   
-  // 2. OFFRES/SERVICES (isProduct: false ou undefined) - Sessions, abonnements
+  // 2. OFFRES/SERVICES (isProduct: false ou undefined) - Visibles UNIQUEMENT si visible === true
   const visibleServices = offers.filter(o => 
-    !o.isProduct && o.visible !== false
+    !o.isProduct && o.visible === true
   );
   
   // 3. COURS avec leur propre visibilité (exclure les archivés)
-  const baseCourses = courses.filter(c => c.visible !== false && c.archived !== true);
+  const baseCourses = courses.filter(c => c.visible === true && c.archived !== true);
   
   // Fonction de recherche floue (fuzzy search)
   const fuzzyMatch = (text, query) => {
