@@ -1853,26 +1853,56 @@ const CoachDashboard = ({ t, lang, onBack, onLogout }) => {
             <div style={{ maxHeight: '400px', overflowY: 'auto', paddingRight: '8px' }} className="custom-scrollbar">
               {courses.map((course, idx) => (
                 <div key={course.id} className="glass rounded-lg p-4 mb-4 relative">
-                  {/* Bouton supprimer */}
-                  <button 
-                    onClick={async () => {
-                      if (window.confirm(`Supprimer le cours "${course.name}" ?`)) {
+                  {/* Actions: Dupliquer + Supprimer */}
+                  <div className="absolute top-2 right-2 flex gap-1">
+                    {/* Bouton dupliquer */}
+                    <button 
+                      onClick={async () => {
                         try {
-                          await axios.delete(`${API}/courses/${course.id}`);
-                          setCourses(courses.filter(c => c.id !== course.id));
+                          const duplicatedCourse = {
+                            name: `${course.name} (copie)`,
+                            weekday: course.weekday,
+                            time: course.time,
+                            locationName: course.locationName,
+                            mapsUrl: course.mapsUrl || '',
+                            visible: true
+                          };
+                          const res = await axios.post(`${API}/courses`, duplicatedCourse);
+                          setCourses([...courses, res.data]);
                         } catch (err) {
-                          console.error("Erreur suppression cours:", err);
+                          console.error("Erreur duplication cours:", err);
                         }
-                      }
-                    }}
-                    className="absolute top-2 right-2 p-2 rounded-lg hover:bg-red-500/30 transition-colors"
-                    style={{ color: 'rgba(239, 68, 68, 0.8)' }}
-                    title="Supprimer ce cours"
-                    data-testid={`delete-course-${course.id}`}
-                  >
-                    <TrashIcon />
-                  </button>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pr-8">
+                      }}
+                      className="p-2 rounded-lg hover:bg-purple-500/30 transition-colors"
+                      style={{ color: 'rgba(139, 92, 246, 0.8)' }}
+                      title="Dupliquer ce cours"
+                      data-testid={`duplicate-course-${course.id}`}
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                      </svg>
+                    </button>
+                    {/* Bouton supprimer */}
+                    <button 
+                      onClick={async () => {
+                        if (window.confirm(`Supprimer le cours "${course.name}" ?`)) {
+                          try {
+                            await axios.delete(`${API}/courses/${course.id}`);
+                            setCourses(courses.filter(c => c.id !== course.id));
+                          } catch (err) {
+                            console.error("Erreur suppression cours:", err);
+                          }
+                        }
+                      }}
+                      className="p-2 rounded-lg hover:bg-red-500/30 transition-colors"
+                      style={{ color: 'rgba(239, 68, 68, 0.8)' }}
+                      title="Supprimer ce cours"
+                      data-testid={`delete-course-${course.id}`}
+                    >
+                      <TrashIcon />
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pr-16">
                     <div>
                       <label className="block mb-1 text-white text-xs opacity-70">{t('courseName')}</label>
                       <input type="text" value={course.name} onChange={(e) => { const n = [...courses]; n[idx].name = e.target.value; setCourses(n); }}
