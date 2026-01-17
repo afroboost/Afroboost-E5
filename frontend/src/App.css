@@ -13,7 +13,7 @@
   display: none;  /* Chrome, Safari, Opera */
 }
 
-/* Custom scrollbar for admin panels */
+/* Custom scrollbar for admin panels and sessions list - Rose (#D91CD2), 4px width */
 .custom-scrollbar {
   scrollbar-width: thin;
   scrollbar-color: #D91CD2 rgba(0, 0, 0, 0.2);
@@ -31,6 +31,74 @@
 }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: #e84de0;
+}
+
+/* Pink scrollbar for sessions/courses list on client side */
+.sessions-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #D91CD2 rgba(0, 0, 0, 0.15);
+}
+.sessions-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+.sessions-scrollbar::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 2px;
+}
+.sessions-scrollbar::-webkit-scrollbar-thumb {
+  background: #D91CD2;
+  border-radius: 2px;
+}
+.sessions-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #e84de0;
+}
+
+/* =================================================================
+   VARIANT SELECTOR CHIPS - Interactive product variants
+   ================================================================= */
+.variant-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1px solid rgba(217, 28, 210, 0.5);
+  background: transparent;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 13px;
+  font-weight: 400;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  min-width: 40px;
+  text-align: center;
+}
+
+.variant-chip:hover {
+  border-color: #D91CD2;
+  color: #fff;
+  background: rgba(217, 28, 210, 0.1);
+}
+
+.variant-chip.selected {
+  background: rgba(217, 28, 210, 0.25);
+  border-color: #D91CD2;
+  color: #fff;
+  box-shadow: 0 0 8px rgba(217, 28, 210, 0.3);
+}
+
+.variant-chip:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Variant section title */
+.variant-label {
+  font-size: 12px;
+  font-weight: 300;
+  color: rgba(255, 255, 255, 0.5);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 html, body {
