@@ -367,9 +367,13 @@ Application de réservation de casques audio pour des cours de fitness Afroboost
 - [x] **Amélioration Partage WhatsApp avec QR Code (17 Jan 2026)**:
   - **html2canvas** : Bibliothèque installée pour convertir le ticket en image PNG
   - **Bouton "Enregistrer mon ticket"** : Télécharge le ticket complet (QR + infos) en image haute qualité
-  - **Bouton "Partager avec QR"** : Utilise Web Share API si disponible, sinon fallback texte + téléchargement
-  - **Zone de capture** : Le ticket entier (QR, code, infos, branding) est capturé pour l'image
-  - **Traductions i18n** : FR/EN/DE ajoutées (saveTicket, shareWithImage, generatingImage)
+  - **Bouton "Partager sur WhatsApp"** : Nouveau bouton vert côte à côte avec Enregistrer
+  - **Texte de partage** : "Voici ma réservation Afroboost : https://afroboost.com"
+  - **afroboost.ch → afroboost.com** : URL corrigée dans tout le projet
+- [x] **Mise à jour Son, Visuels et PWA (17 Jan 2026)**:
+  - **Bouton Mute/Unmute** : Ajouté sous la vidéo YouTube/Vimeo, permet d'activer le son manuellement
+  - **Logo Twint corrigé** : Remplacé l'image cassée par un texte SVG "TWINT" blanc
+  - **Manifest PWA dynamique** : Endpoint `/api/manifest.json` utilise le logo configuré par le coach
 
 ### P1 - À faire
 - [ ] **CRITICAL: Refactoring de App.js** - Le fichier monolithique dépasse 5500 lignes. Extraire la logique restante dans des hooks et composants dédiés.
