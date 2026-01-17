@@ -4599,10 +4599,87 @@ const CoachDashboard = ({ t, lang, onBack, onLogout }) => {
   );
 };
 
-// Success Overlay
+// Success Overlay with Image Share Functionality
 const SuccessOverlay = ({ t, data, onClose }) => {
+  const ticketRef = useRef(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  
   const handlePrint = () => window.print();
-  const handleShare = () => {
+  
+  // Generate ticket image using html2canvas
+  const generateTicketImage = async () => {
+    if (!ticketRef.current) return null;
+    setIsGenerating(true);
+    try {
+      const canvas = await html2canvas(ticketRef.current, {
+        backgroundColor: '#1a0a1f',
+        scale: 2,
+        useCORS: true,
+        logging: false
+      });
+      return canvas;
+    } catch (err) {
+      console.error('Error generating image:', err);
+      return null;
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+  
+  // Download ticket as image
+  const handleSaveTicket = async () => {
+    const canvas = await generateTicketImage();
+    if (canvas) {
+      const link = document.createElement('a');
+      link.download = `ticket-afroboost-${data.reservationCode}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    }
+  };
+  
+  // Share with image - uses Web Share API if available, otherwise fallback
+  const handleShareWithImage = async () => {
+    const canvas = await generateTicketImage();
+    if (!canvas) {
+      // Fallback to text share if image generation fails
+      handleTextShare();
+      return;
+    }
+    
+    // Convert canvas to blob
+    canvas.toBlob(async (blob) => {
+      if (!blob) {
+        handleTextShare();
+        return;
+      }
+      
+      const file = new File([blob], `ticket-afroboost-${data.reservationCode}.png`, { type: 'image/png' });
+      const shareData = {
+        title: `🎧 ${t('reservationConfirmed')}`,
+        text: `${t('reservationCode')}: ${data.reservationCode}`,
+        files: [file]
+      };
+      
+      // Check if Web Share API with files is supported
+      if (navigator.canShare && navigator.canShare(shareData)) {
+        try {
+          await navigator.share(shareData);
+        } catch (err) {
+          if (err.name !== 'AbortError') {
+            // User didn't cancel, try text share
+            handleTextShare();
+          }
+        }
+      } else {
+        // Fallback: download the image and open WhatsApp with text
+        handleSaveTicket();
+        setTimeout(() => handleTextShare(), 500);
+      }
+    }, 'image/png');
+  };
+  
+  // Text-only share (fallback)
+  const handleTextShare = () => {
     const msg = `🎧 ${t('reservationConfirmed')}\n\n👤 ${t('name')}: ${data.userName}\n📧 ${t('email')}: ${data.userEmail}\n💰 ${t('offer')}: ${data.offerName}\n💵 ${t('total')}: CHF ${data.totalPrice}\n📅 ${t('courses')}: ${data.courseName}\n🎫 ${t('code')}: ${data.reservationCode}`;
     window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
   };
@@ -4614,34 +4691,67 @@ const SuccessOverlay = ({ t, data, onClose }) => {
     <div className="success-overlay">
       <div className="success-message glass rounded-xl p-6 max-w-md w-full text-center neon-border relative print-proof">
         <button onClick={onClose} className="absolute top-3 right-4 text-2xl text-white" data-testid="close-success">×</button>
-        <div style={{ fontSize: '48px' }}>🎧</div>
-        <p className="font-bold text-white my-2" style={{ fontSize: '20px' }}>{t('reservationConfirmed')}</p>
         
-        {/* QR Code for coach validation - contains validation URL */}
-        <div className="my-4 p-4 rounded-lg bg-white flex flex-col items-center">
-          <QRCodeSVG 
-            value={validationUrl} 
-            size={150} 
-            level="H"
-            includeMargin={true}
-            bgColor="#ffffff"
-            fgColor="#000000"
-          />
-          <p className="text-xs text-gray-600 mt-2">{t('scanToValidate') || 'Scannez pour valider'}</p>
+        {/* Ticket content - captured for image */}
+        <div ref={ticketRef} className="ticket-capture-zone" style={{ padding: '16px', background: 'linear-gradient(180deg, #1a0a1f 0%, #0d0510 100%)', borderRadius: '12px' }}>
+          <div style={{ fontSize: '48px' }}>🎧</div>
+          <p className="font-bold text-white my-2" style={{ fontSize: '20px' }}>{t('reservationConfirmed')}</p>
+          
+          {/* QR Code for coach validation - contains validation URL */}
+          <div className="my-4 p-4 rounded-lg bg-white flex flex-col items-center">
+            <QRCodeSVG 
+              value={validationUrl} 
+              size={150} 
+              level="H"
+              includeMargin={true}
+              bgColor="#ffffff"
+              fgColor="#000000"
+            />
+            <p className="text-xs text-gray-600 mt-2">{t('scanToValidate') || 'Scannez pour valider'}</p>
+          </div>
+          
+          <div className="my-3 p-3 rounded-lg bg-white/10 border-2 border-dashed" style={{ borderColor: '#d91cd2' }}>
+            <p className="text-xs text-white opacity-60">{t('reservationCode')}:</p>
+            <p className="text-2xl font-bold tracking-widest text-white" data-testid="reservation-code">{data.reservationCode}</p>
+          </div>
+          <div className="text-sm text-left space-y-1 text-white opacity-80">
+            <p><strong>{t('name')}:</strong> {data.userName}</p>
+            <p><strong>{t('courses')}:</strong> {data.courseName}</p>
+            <p><strong>{t('total')}:</strong> CHF {data.totalPrice}{data.quantity > 1 ? ` (x${data.quantity})` : ''}</p>
+          </div>
+          
+          {/* Afroboost branding in ticket */}
+          <p className="text-xs text-white/40 mt-4">afroboost.ch</p>
         </div>
         
-        <div className="my-3 p-3 rounded-lg bg-white/10 border-2 border-dashed" style={{ borderColor: '#d91cd2' }}>
-          <p className="text-xs text-white opacity-60">{t('reservationCode')}:</p>
-          <p className="text-2xl font-bold tracking-widest text-white" data-testid="reservation-code">{data.reservationCode}</p>
-        </div>
-        <div className="text-sm text-left space-y-1 mb-6 text-white opacity-80">
-          <p><strong>{t('name')}:</strong> {data.userName}</p>
-          <p><strong>{t('courses')}:</strong> {data.courseName}</p>
-          <p><strong>{t('total')}:</strong> CHF {data.totalPrice}{data.quantity > 1 ? ` (x${data.quantity})` : ''}</p>
-        </div>
-        <div className="flex gap-2">
-          <button onClick={handlePrint} className="flex-1 p-2 glass rounded-lg text-white text-sm">{t('print')}</button>
-          <button onClick={handleShare} className="flex-1 p-2 glass rounded-lg text-white text-sm">{t('share')}</button>
+        {/* Action buttons - outside capture zone */}
+        <div className="mt-4 space-y-2">
+          {/* Primary action: Save ticket as image */}
+          <button 
+            onClick={handleSaveTicket} 
+            disabled={isGenerating}
+            className="w-full p-3 rounded-lg font-semibold text-white transition-all"
+            style={{ 
+              background: 'linear-gradient(135deg, #d91cd2 0%, #8b5cf6 100%)',
+              boxShadow: '0 0 20px rgba(217, 28, 210, 0.4)'
+            }}
+            data-testid="save-ticket-btn"
+          >
+            {isGenerating ? t('generatingImage') : t('saveTicket')}
+          </button>
+          
+          {/* Secondary actions row */}
+          <div className="flex gap-2">
+            <button onClick={handlePrint} className="flex-1 p-2 glass rounded-lg text-white text-sm">{t('print')}</button>
+            <button 
+              onClick={handleShareWithImage} 
+              disabled={isGenerating}
+              className="flex-1 p-2 glass rounded-lg text-white text-sm"
+              data-testid="share-ticket-btn"
+            >
+              {t('shareWithImage')}
+            </button>
+          </div>
         </div>
       </div>
     </div>
