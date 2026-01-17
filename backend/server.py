@@ -257,6 +257,9 @@ class Concept(BaseModel):
     paymentTwint: bool = False
     paymentPaypal: bool = False
     paymentCreditCard: bool = False
+    # Affiche Événement (popup)
+    eventPosterEnabled: bool = False
+    eventPosterMediaUrl: str = ""  # URL image ou vidéo
 
 class ConceptUpdate(BaseModel):
     description: Optional[str] = None
