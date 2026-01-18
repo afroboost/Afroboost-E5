@@ -404,11 +404,17 @@ const CoachDashboard = ({ t, lang, onBack, onLogout }) => {
     setDiscountCodes(discountCodes.map(c => c.id === code.id ? { ...c, active: !c.active } : c));
   };
 
-  // Delete discount code
+  // Delete discount code - SUPPRESSION DÉFINITIVE EN BASE
   const deleteCode = async (codeId) => {
-    if (window.confirm(t('confirmDelete') || 'Supprimer ce code ?')) {
-      await axios.delete(`${API}/discount-codes/${codeId}`);
-      setDiscountCodes(discountCodes.filter(c => c.id !== codeId));
+    if (window.confirm("⚠️ SUPPRESSION DÉFINITIVE\n\nCe code promo sera supprimé de la base de données.\nCette action est irréversible.\n\nConfirmer la suppression ?")) {
+      try {
+        await axios.delete(`${API}/discount-codes/${codeId}`);
+        setDiscountCodes(discountCodes.filter(c => c.id !== codeId));
+        console.log(`✅ Code ${codeId} supprimé définitivement de la base`);
+      } catch (error) {
+        console.error("Erreur suppression code:", error);
+        alert("❌ Erreur lors de la suppression");
+      }
     }
   };
   
