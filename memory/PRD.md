@@ -549,6 +549,13 @@ Application de réservation de casques audio pour des cours de fitness Afroboost
   - **Fermeture** : Bouton × pour fermer le lecteur
   - **Testable sans paiement** : Le lecteur est accessible avant le paiement pour permettre les tests
   - **Tests** : Tous les scénarios conditionnels vérifiés (flag ON/OFF, avec/sans playlist)
+- [x] **Icône Audio 🎧 dans les Sessions (18 Jan 2026)**:
+  - **Affichage conditionnel** : Icône 🎧 rose (#d91cd2) visible dans chaque case horaire de cours avec playlist
+  - **Positionnement** : À côté de l'heure via `flex` (texte non décalé)
+  - **Comportement** : Clic sur l'icône ouvre le lecteur audio (sans interférer avec la sélection de date)
+  - **Style hover** : Effet `scale(1.3)` + `drop-shadow` rose au survol
+  - **Protocole anti-casse** : Fonctions `totalPrice`, `handleBooking`, `TwintButton` non modifiées
+  - **Test de régression** : Prix total + bouton "Payer" fonctionnels après modification
 
 ### P1 - À faire
 - [x] ~~**CRITICAL: Refactoring de App.js**~~ - ✅ COMPLÉTÉ - App.js réduit de 52%
