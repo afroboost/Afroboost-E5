@@ -6,6 +6,9 @@ import axios from 'axios';
 
 const API = process.env.REACT_APP_BACKEND_URL + '/api';
 
+// Clé localStorage pour la mémorisation client
+const CHAT_CLIENT_KEY = 'af_chat_client';
+
 // Icône WhatsApp SVG
 const WhatsAppIcon = () => (
   <svg viewBox="0 0 24 24" width="28" height="28" fill="white">
@@ -28,7 +31,7 @@ const SendIcon = () => (
 );
 
 /**
- * Widget de chat IA flottant avec capture de leads
+ * Widget de chat IA flottant avec capture de leads et mémorisation client
  */
 export const ChatWidget = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -38,7 +41,27 @@ export const ChatWidget = () => {
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [isReturningClient, setIsReturningClient] = useState(false);
   const messagesEndRef = useRef(null);
+
+  // === MÉMORISATION CLIENT: Charger les données au démarrage ===
+  useEffect(() => {
+    const savedClient = localStorage.getItem(CHAT_CLIENT_KEY);
+    if (savedClient) {
+      try {
+        const clientData = JSON.parse(savedClient);
+        if (clientData.firstName && clientData.email) {
+          setLeadData(clientData);
+          setIsReturningClient(true);
+          // Préparer le message d'accueil personnalisé
+          console.log(`🎉 Client reconnu: ${clientData.firstName}`);
+        }
+      } catch (err) {
+        console.error('Error loading saved client:', err);
+        localStorage.removeItem(CHAT_CLIENT_KEY);
+      }
+    }
+  }, []);
 
   // Scroll vers le bas des messages
   useEffect(() => {
@@ -46,6 +69,38 @@ export const ChatWidget = () => {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages]);
+
+  // === SYNCHRONISATION CONTACTS: Créer ou mettre à jour le contact en base ===
+  const syncContactToDatabase = async (clientData) => {
+    try {
+      // Vérifier si le contact existe déjà par email
+      const usersResponse = await axios.get(`${API}/users`);
+      const existingUser = usersResponse.data.find(
+        u => u.email?.toLowerCase() === clientData.email.toLowerCase()
+      );
+
+      if (existingUser) {
+        // Mettre à jour le contact existant (nom et whatsapp peuvent avoir changé)
+        await axios.put(`${API}/users/${existingUser.id}`, {
+          name: clientData.firstName,
+          email: clientData.email,
+          whatsapp: clientData.whatsapp
+        });
+        console.log(`✅ Contact mis à jour: ${clientData.firstName}`);
+      } else {
+        // Créer un nouveau contact
+        await axios.post(`${API}/users`, {
+          name: clientData.firstName,
+          email: clientData.email,
+          whatsapp: clientData.whatsapp
+        });
+        console.log(`✅ Nouveau contact créé: ${clientData.firstName}`);
+      }
+    } catch (err) {
+      console.error('Error syncing contact:', err);
+      // Ne pas bloquer le chat si la synchro échoue
+    }
+  };
 
   // Valider et enregistrer le lead
   const handleSubmitLead = async (e) => {
@@ -69,11 +124,24 @@ export const ChatWidget = () => {
     setIsLoading(true);
     
     try {
-      // Enregistrer le lead dans MongoDB
-      await axios.post(`${API}/leads`, {
+      const clientData = {
         firstName: leadData.firstName.trim(),
         whatsapp: leadData.whatsapp.trim(),
-        email: leadData.email.trim(),
+        email: leadData.email.trim().toLowerCase()
+      };
+
+      // === MÉMORISATION: Sauvegarder dans localStorage ===
+      localStorage.setItem(CHAT_CLIENT_KEY, JSON.stringify(clientData));
+      console.log(`💾 Client sauvegardé: ${clientData.firstName}`);
+
+      // === SYNCHRONISATION: Créer/Mettre à jour le contact en base ===
+      await syncContactToDatabase(clientData);
+      
+      // Enregistrer le lead dans MongoDB (collection leads)
+      await axios.post(`${API}/leads`, {
+        firstName: clientData.firstName,
+        whatsapp: clientData.whatsapp,
+        email: clientData.email,
         source: 'widget_ia'
       });
       
@@ -81,12 +149,18 @@ export const ChatWidget = () => {
       setStep('chat');
       setMessages([{
         type: 'ai',
-        text: `Enchanté ${leadData.firstName} ! 👋 Je suis l'assistant IA d'Afroboost. Comment puis-je t'aider aujourd'hui ?`
+        text: `Enchanté ${clientData.firstName} ! 👋 Je suis l'assistant IA d'Afroboost. Comment puis-je t'aider aujourd'hui ?`
       }]);
       
     } catch (err) {
       console.error('Error saving lead:', err);
-      // Même en cas d'erreur, on passe en mode chat
+      // Même en cas d'erreur, sauvegarder localement et passer en mode chat
+      localStorage.setItem(CHAT_CLIENT_KEY, JSON.stringify({
+        firstName: leadData.firstName.trim(),
+        whatsapp: leadData.whatsapp.trim(),
+        email: leadData.email.trim().toLowerCase()
+      }));
+      
       setStep('chat');
       setMessages([{
         type: 'ai',
@@ -94,6 +168,42 @@ export const ChatWidget = () => {
       }]);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // === CLIENT RECONNU: Ouvrir directement le chat ===
+  const handleReturningClientStart = async () => {
+    setIsLoading(true);
+    
+    try {
+      // Synchroniser les données existantes avec la base
+      await syncContactToDatabase(leadData);
+      
+      // Passer directement en mode chat avec salutation personnalisée
+      setStep('chat');
+      setMessages([{
+        type: 'ai',
+        text: `Bonjour ${leadData.firstName} ! 😊 Ravi de te revoir ! Comment puis-je t'aider aujourd'hui ?`
+      }]);
+    } catch (err) {
+      console.error('Error:', err);
+      setStep('chat');
+      setMessages([{
+        type: 'ai',
+        text: `Bonjour ${leadData.firstName} ! 😊 Comment puis-je t'aider ?`
+      }]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // === Ouvrir le widget ===
+  const handleOpenWidget = () => {
+    setIsOpen(true);
+    
+    // Si client reconnu et pas encore en mode chat, ouvrir directement le chat
+    if (isReturningClient && step === 'form') {
+      handleReturningClientStart();
     }
   };
 
@@ -135,12 +245,21 @@ export const ChatWidget = () => {
     // Garder les données du lead pour ne pas les redemander
   };
 
+  // Option pour changer d'identité (nouveau client)
+  const handleChangeIdentity = () => {
+    localStorage.removeItem(CHAT_CLIENT_KEY);
+    setLeadData({ firstName: '', whatsapp: '', email: '' });
+    setIsReturningClient(false);
+    setStep('form');
+    setMessages([]);
+  };
+
   return (
     <>
       {/* Bouton flottant WhatsApp */}
       {!isOpen && (
         <button
-          onClick={() => setIsOpen(true)}
+          onClick={handleOpenWidget}
           className="fixed z-50 shadow-lg transition-all duration-300 hover:scale-110"
           style={{
             bottom: '80px', // Au-dessus du footer
@@ -159,25 +278,47 @@ export const ChatWidget = () => {
           data-testid="chat-widget-button"
         >
           <WhatsAppIcon />
+          {/* Badge si client reconnu */}
+          {isReturningClient && (
+            <span 
+              style={{
+                position: 'absolute',
+                top: '-4px',
+                right: '-4px',
+                width: '18px',
+                height: '18px',
+                borderRadius: '50%',
+                background: '#d91cd2',
+                border: '2px solid #0a0a0a',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '10px',
+                color: '#fff'
+              }}
+            >
+              ✓
+            </span>
+          )}
         </button>
       )}
 
       {/* Fenêtre de chat */}
       {isOpen && (
         <div
-          className="fixed z-50 shadow-2xl overflow-hidden"
+          className="fixed z-50 shadow-2xl"
           style={{
             bottom: '80px',
             right: '20px',
             width: '340px',
             maxWidth: 'calc(100vw - 40px)',
-            height: '450px',
-            maxHeight: 'calc(100vh - 120px)',
+            maxHeight: '80vh', // FIX: max-height 80vh
             borderRadius: '16px',
             background: '#0a0a0a',
             border: '1px solid rgba(217, 28, 210, 0.3)',
             display: 'flex',
-            flexDirection: 'column'
+            flexDirection: 'column',
+            overflow: 'hidden'
           }}
           data-testid="chat-widget-window"
         >
@@ -188,7 +329,8 @@ export const ChatWidget = () => {
               padding: '12px 16px',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'space-between'
+              justifyContent: 'space-between',
+              flexShrink: 0
             }}
           >
             <div className="flex items-center gap-3">
@@ -207,7 +349,9 @@ export const ChatWidget = () => {
               </div>
               <div>
                 <div className="text-white font-semibold text-sm">Afroboost</div>
-                <div className="text-white text-xs" style={{ opacity: 0.8 }}>Assistant IA</div>
+                <div className="text-white text-xs" style={{ opacity: 0.8 }}>
+                  {isReturningClient && step === 'chat' ? `👋 ${leadData.firstName}` : 'Assistant IA'}
+                </div>
               </div>
             </div>
             <button
@@ -229,111 +373,127 @@ export const ChatWidget = () => {
             </button>
           </div>
 
-          {/* Contenu */}
-          <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+          {/* Contenu avec scroll */}
+          <div style={{ 
+            flex: 1, 
+            overflow: 'hidden', 
+            display: 'flex', 
+            flexDirection: 'column',
+            minHeight: 0 // Important pour le scroll
+          }}>
             
-            {/* Formulaire de capture */}
+            {/* Formulaire de capture avec scroll */}
             {step === 'form' && (
-              <form 
-                onSubmit={handleSubmitLead}
+              <div 
                 style={{
+                  flex: 1,
+                  overflowY: 'auto', // FIX: overflow-y auto
                   padding: '20px',
                   display: 'flex',
-                  flexDirection: 'column',
-                  gap: '12px',
-                  height: '100%'
+                  flexDirection: 'column'
                 }}
               >
-                <p className="text-white text-sm text-center mb-2">
-                  👋 Avant de commencer, présentez-vous !
-                </p>
-                
-                {error && (
-                  <div style={{ 
-                    background: 'rgba(239, 68, 68, 0.2)', 
-                    color: '#ef4444', 
-                    padding: '8px 12px', 
-                    borderRadius: '8px',
-                    fontSize: '12px'
-                  }}>
-                    {error}
-                  </div>
-                )}
-                
-                <div>
-                  <label className="block text-white text-xs mb-1" style={{ opacity: 0.7 }}>Prénom *</label>
-                  <input
-                    type="text"
-                    value={leadData.firstName}
-                    onChange={(e) => setLeadData({ ...leadData, firstName: e.target.value })}
-                    placeholder="Votre prénom"
-                    className="w-full px-3 py-2 rounded-lg text-sm"
-                    style={{
-                      background: 'rgba(255,255,255,0.1)',
-                      border: '1px solid rgba(255,255,255,0.2)',
-                      color: '#fff',
-                      outline: 'none'
-                    }}
-                    data-testid="lead-firstname"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-white text-xs mb-1" style={{ opacity: 0.7 }}>Numéro WhatsApp *</label>
-                  <input
-                    type="tel"
-                    value={leadData.whatsapp}
-                    onChange={(e) => setLeadData({ ...leadData, whatsapp: e.target.value })}
-                    placeholder="+41 79 123 45 67"
-                    className="w-full px-3 py-2 rounded-lg text-sm"
-                    style={{
-                      background: 'rgba(255,255,255,0.1)',
-                      border: '1px solid rgba(255,255,255,0.2)',
-                      color: '#fff',
-                      outline: 'none'
-                    }}
-                    data-testid="lead-whatsapp"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-white text-xs mb-1" style={{ opacity: 0.7 }}>Email *</label>
-                  <input
-                    type="email"
-                    value={leadData.email}
-                    onChange={(e) => setLeadData({ ...leadData, email: e.target.value })}
-                    placeholder="votre@email.com"
-                    className="w-full px-3 py-2 rounded-lg text-sm"
-                    style={{
-                      background: 'rgba(255,255,255,0.1)',
-                      border: '1px solid rgba(255,255,255,0.2)',
-                      color: '#fff',
-                      outline: 'none'
-                    }}
-                    data-testid="lead-email"
-                  />
-                </div>
-                
-                <button
-                  type="submit"
-                  disabled={isLoading}
-                  className="mt-auto py-3 rounded-lg font-semibold text-sm transition-all"
+                <form 
+                  onSubmit={handleSubmitLead}
                   style={{
-                    background: '#25D366',
-                    color: '#fff',
-                    border: 'none',
-                    cursor: isLoading ? 'wait' : 'pointer',
-                    opacity: isLoading ? 0.7 : 1
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '12px',
+                    minHeight: 'min-content'
                   }}
-                  data-testid="lead-submit"
                 >
-                  {isLoading ? 'Chargement...' : 'Commencer le chat 💬'}
-                </button>
-                
-                <p className="text-center text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
-                  Vos données sont protégées et utilisées uniquement pour vous contacter.
-                </p>
-              </form>
+                  <p className="text-white text-sm text-center mb-2">
+                    👋 Avant de commencer, présentez-vous !
+                  </p>
+                  
+                  {error && (
+                    <div style={{ 
+                      background: 'rgba(239, 68, 68, 0.2)', 
+                      color: '#ef4444', 
+                      padding: '8px 12px', 
+                      borderRadius: '8px',
+                      fontSize: '12px'
+                    }}>
+                      {error}
+                    </div>
+                  )}
+                  
+                  <div>
+                    <label className="block text-white text-xs mb-1" style={{ opacity: 0.7 }}>Prénom *</label>
+                    <input
+                      type="text"
+                      value={leadData.firstName}
+                      onChange={(e) => setLeadData({ ...leadData, firstName: e.target.value })}
+                      placeholder="Votre prénom"
+                      className="w-full px-3 py-2 rounded-lg text-sm"
+                      style={{
+                        background: 'rgba(255,255,255,0.1)',
+                        border: '1px solid rgba(255,255,255,0.2)',
+                        color: '#fff',
+                        outline: 'none'
+                      }}
+                      data-testid="lead-firstname"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-white text-xs mb-1" style={{ opacity: 0.7 }}>Numéro WhatsApp *</label>
+                    <input
+                      type="tel"
+                      value={leadData.whatsapp}
+                      onChange={(e) => setLeadData({ ...leadData, whatsapp: e.target.value })}
+                      placeholder="+41 79 123 45 67"
+                      className="w-full px-3 py-2 rounded-lg text-sm"
+                      style={{
+                        background: 'rgba(255,255,255,0.1)',
+                        border: '1px solid rgba(255,255,255,0.2)',
+                        color: '#fff',
+                        outline: 'none'
+                      }}
+                      data-testid="lead-whatsapp"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-white text-xs mb-1" style={{ opacity: 0.7 }}>Email *</label>
+                    <input
+                      type="email"
+                      value={leadData.email}
+                      onChange={(e) => setLeadData({ ...leadData, email: e.target.value })}
+                      placeholder="votre@email.com"
+                      className="w-full px-3 py-2 rounded-lg text-sm"
+                      style={{
+                        background: 'rgba(255,255,255,0.1)',
+                        border: '1px solid rgba(255,255,255,0.2)',
+                        color: '#fff',
+                        outline: 'none'
+                      }}
+                      data-testid="lead-email"
+                    />
+                  </div>
+                  
+                  <button
+                    type="submit"
+                    disabled={isLoading}
+                    className="py-3 rounded-lg font-semibold text-sm transition-all"
+                    style={{
+                      background: '#25D366',
+                      color: '#fff',
+                      border: 'none',
+                      cursor: isLoading ? 'wait' : 'pointer',
+                      opacity: isLoading ? 0.7 : 1,
+                      marginTop: '8px'
+                    }}
+                    data-testid="lead-submit"
+                  >
+                    {isLoading ? 'Chargement...' : 'Commencer le chat 💬'}
+                  </button>
+                  
+                  <p className="text-center text-xs" style={{ color: 'rgba(255,255,255,0.4)', marginTop: '8px' }}>
+                    Vos données sont protégées et utilisées uniquement pour vous contacter.
+                  </p>
+                </form>
+              </div>
             )}
             
             {/* Zone de chat */}
@@ -346,7 +506,8 @@ export const ChatWidget = () => {
                     padding: '16px',
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: '12px'
+                    gap: '12px',
+                    minHeight: 0
                   }}
                 >
                   {messages.map((msg, idx) => (
@@ -401,7 +562,8 @@ export const ChatWidget = () => {
                     padding: '12px',
                     borderTop: '1px solid rgba(255,255,255,0.1)',
                     display: 'flex',
-                    gap: '8px'
+                    gap: '8px',
+                    flexShrink: 0
                   }}
                 >
                   <input
@@ -432,11 +594,37 @@ export const ChatWidget = () => {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      opacity: isLoading || !inputMessage.trim() ? 0.5 : 1
+                      opacity: isLoading || !inputMessage.trim() ? 0.5 : 1,
+                      flexShrink: 0
                     }}
                     data-testid="chat-send-btn"
                   >
                     <SendIcon />
+                  </button>
+                </div>
+
+                {/* Option pour changer d'identité */}
+                <div 
+                  style={{
+                    padding: '8px 12px',
+                    borderTop: '1px solid rgba(255,255,255,0.05)',
+                    textAlign: 'center',
+                    flexShrink: 0
+                  }}
+                >
+                  <button
+                    onClick={handleChangeIdentity}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: 'rgba(255,255,255,0.4)',
+                      fontSize: '11px',
+                      cursor: 'pointer',
+                      textDecoration: 'underline'
+                    }}
+                    data-testid="change-identity-btn"
+                  >
+                    Pas {leadData.firstName} ? Changer d'identité
                   </button>
                 </div>
               </>
