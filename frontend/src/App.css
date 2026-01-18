@@ -250,6 +250,12 @@ html, body {
   background: linear-gradient(135deg, rgba(217, 28, 210, 0.1) 0%, rgba(139, 92, 246, 0.08) 100%);
 }
 
+/* Audio Icon in Session Slots */
+.audio-icon-session:hover {
+  transform: scale(1.3);
+  filter: drop-shadow(0 0 6px #d91cd2);
+}
+
 /* Course Cards with Gradient */
 .course-card {
   transition: all 0.3s ease;
