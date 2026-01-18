@@ -243,22 +243,31 @@ const CoachDashboard = ({ t, lang, onBack, onLogout }) => {
     .map(c => [c.email, c])
   ).values());
 
-  const exportCSV = () => {
-    const rows = [
-      [t('code'), t('name'), t('email'), "WhatsApp", t('courses'), t('date'), t('time'), t('offer'), t('qty'), t('total')],
-      ...reservations.map(r => {
-        const dt = new Date(r.datetime);
-        return [r.reservationCode || '', r.userName, r.userEmail, r.userWhatsapp || '', r.courseName, 
-          dt.toLocaleDateString('fr-CH'), dt.toLocaleTimeString('fr-CH', { hour: '2-digit', minute: '2-digit' }),
-          r.offerName, r.quantity || 1, r.totalPrice || r.price];
-      })
-    ];
-    const csv = rows.map(r => r.map(c => `"${c}"`).join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a"); a.href = url; 
-    a.download = `afroboost_reservations_${new Date().toISOString().split('T')[0]}.csv`;
-    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  const exportCSV = async () => {
+    try {
+      // Récupérer TOUTES les réservations pour l'export (sans pagination)
+      const response = await axios.get(`${API}/reservations?all_data=true`);
+      const allReservations = response.data.data;
+      
+      const rows = [
+        [t('code'), t('name'), t('email'), "WhatsApp", t('courses'), t('date'), t('time'), t('offer'), t('qty'), t('total'), "Dates multiples"],
+        ...allReservations.map(r => {
+          const dt = new Date(r.datetime);
+          return [r.reservationCode || '', r.userName, r.userEmail, r.userWhatsapp || '', r.courseName, 
+            dt.toLocaleDateString('fr-CH'), dt.toLocaleTimeString('fr-CH', { hour: '2-digit', minute: '2-digit' }),
+            r.offerName, r.quantity || 1, r.totalPrice || r.price, r.selectedDatesText || ''];
+        })
+      ];
+      const csv = rows.map(r => r.map(c => `"${c}"`).join(",")).join("\n");
+      const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" }); // UTF-8 BOM
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a"); a.href = url; 
+      a.download = `afroboost_reservations_${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    } catch (err) {
+      console.error("Export error:", err);
+      alert("Erreur lors de l'export CSV");
+    }
   };
 
   // Validate reservation by code (for QR scanner)
