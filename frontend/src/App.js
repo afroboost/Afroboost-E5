@@ -1943,9 +1943,11 @@ function App() {
     const checkAudioFeature = async () => {
       try {
         const response = await axios.get(`${API}/feature-flags`);
-        setAudioFeatureEnabled(response.data?.AUDIO_SERVICE_ENABLED || false);
+        const audioEnabled = response.data?.AUDIO_SERVICE_ENABLED || false;
+        setAudioFeatureEnabled(audioEnabled);
+        console.log(`Audio Service: ${audioEnabled ? 'ENABLED' : 'DISABLED'}`);
       } catch (err) {
-        console.log('Feature flags not available');
+        console.log('Audio Service: UNAVAILABLE (feature flags not accessible)');
         setAudioFeatureEnabled(false);
       }
     };
