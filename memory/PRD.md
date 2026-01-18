@@ -280,7 +280,7 @@ Application de réservation de casques audio pour des cours de fitness Afroboost
 - `courses`: id, name, weekday, time, locationName, mapsUrl, visible
 - `offers`: id, name, price, thumbnail, description, visible
 - `users`: id, name, email, whatsapp, createdAt
-- `reservations`: id, reservationCode, userId, userName, userEmail, courseId, ...
+- `reservations`: id, reservationCode, userId, userName, userEmail, courseId, selectedDates (List[str]), selectedDatesText, totalPrice, ...
 - `discount_codes`: id, code, type, value, assignedEmail, courses, maxUses, used, active
 - `concept`: id, description, heroImageUrl, logoUrl, faviconUrl
 - `payment_links`: id, stripe, paypal, twint, coachWhatsapp
