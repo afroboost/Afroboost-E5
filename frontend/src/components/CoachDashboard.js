@@ -351,6 +351,20 @@ const CoachDashboard = ({ t, lang, onBack, onLogout }) => {
       courses: prev.courses.filter(id => id !== articleId)
     }));
   };
+  
+  // Mettre à jour un code promo individuellement
+  const updateCodeIndividual = async (codeId, updates) => {
+    try {
+      const response = await axios.put(`${API}/discount-codes/${codeId}`, updates);
+      setDiscountCodes(prev => prev.map(c => c.id === codeId ? { ...c, ...updates } : c));
+      setEditingCode(null);
+      return true;
+    } catch (error) {
+      console.error("Erreur mise à jour code:", error);
+      alert("❌ Erreur lors de la mise à jour");
+      return false;
+    }
+  };
 
   const toggleCode = async (code) => {
     await axios.put(`${API}/discount-codes/${code.id}`, { active: !code.active });
