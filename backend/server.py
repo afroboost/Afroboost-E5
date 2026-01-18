@@ -1086,6 +1086,176 @@ async def update_coach_auth(auth: CoachAuth):
     await db.coach_auth.update_one({"id": "coach_auth"}, {"$set": auth.model_dump()}, upsert=True)
     return {"success": True}
 
+# ==================== FEATURE FLAGS API (Super Admin Only) ====================
+# Business: Seul le Super Admin peut activer/désactiver les services globaux
+
+@api_router.get("/feature-flags")
+async def get_feature_flags():
+    """
+    Récupère la configuration des feature flags
+    Par défaut, tous les services additionnels sont désactivés
+    """
+    flags = await db.feature_flags.find_one({"id": "feature_flags"}, {"_id": 0})
+    if not flags:
+        # Créer la config par défaut (tout désactivé)
+        default_flags = {
+            "id": "feature_flags",
+            "AUDIO_SERVICE_ENABLED": False,
+            "VIDEO_SERVICE_ENABLED": False,
+            "STREAMING_SERVICE_ENABLED": False,
+            "updatedAt": None,
+            "updatedBy": None
+        }
+        await db.feature_flags.insert_one(default_flags)
+        return default_flags
+    return flags
+
+@api_router.put("/feature-flags")
+async def update_feature_flags(update: FeatureFlagsUpdate):
+    """
+    Met à jour les feature flags (Super Admin only)
+    TODO: Ajouter authentification Super Admin
+    """
+    update_data = {k: v for k, v in update.model_dump().items() if v is not None}
+    update_data["updatedAt"] = datetime.now(timezone.utc).isoformat()
+    update_data["updatedBy"] = "super_admin"  # TODO: Récupérer depuis le token
+    
+    await db.feature_flags.update_one(
+        {"id": "feature_flags"}, 
+        {"$set": update_data}, 
+        upsert=True
+    )
+    return await db.feature_flags.find_one({"id": "feature_flags"}, {"_id": 0})
+
+# ==================== COACH SUBSCRIPTION API ====================
+# Business: Gestion des abonnements et droits des coachs
+
+@api_router.get("/coach-subscription")
+async def get_coach_subscription():
+    """
+    Récupère l'abonnement du coach actuel
+    Utilise l'email de coach_auth pour trouver l'abonnement correspondant
+    """
+    # Récupérer l'email du coach actuel
+    coach_auth = await db.coach_auth.find_one({"id": "coach_auth"}, {"_id": 0})
+    if not coach_auth:
+        return {"error": "Coach auth not found"}
+    
+    coach_email = coach_auth.get("email", "coach@afroboost.com")
+    
+    # Chercher l'abonnement correspondant
+    subscription = await db.coach_subscriptions.find_one(
+        {"coachEmail": coach_email}, 
+        {"_id": 0}
+    )
+    
+    if not subscription:
+        # Créer un abonnement par défaut (free, sans services additionnels)
+        default_sub = {
+            "id": str(uuid.uuid4()),
+            "coachEmail": coach_email,
+            "hasAudioService": False,
+            "hasVideoService": False,
+            "hasStreamingService": False,
+            "subscriptionPlan": "free",
+            "subscriptionStartDate": datetime.now(timezone.utc).isoformat(),
+            "subscriptionEndDate": None,
+            "isActive": True,
+            "createdAt": datetime.now(timezone.utc).isoformat(),
+            "updatedAt": None
+        }
+        await db.coach_subscriptions.insert_one(default_sub)
+        return default_sub
+    
+    return subscription
+
+@api_router.put("/coach-subscription")
+async def update_coach_subscription(update: CoachSubscriptionUpdate):
+    """
+    Met à jour l'abonnement du coach
+    TODO: Ajouter vérification Super Admin pour modifications sensibles
+    """
+    coach_auth = await db.coach_auth.find_one({"id": "coach_auth"}, {"_id": 0})
+    if not coach_auth:
+        raise HTTPException(status_code=404, detail="Coach auth not found")
+    
+    coach_email = coach_auth.get("email", "coach@afroboost.com")
+    
+    update_data = {k: v for k, v in update.model_dump().items() if v is not None}
+    update_data["updatedAt"] = datetime.now(timezone.utc).isoformat()
+    
+    await db.coach_subscriptions.update_one(
+        {"coachEmail": coach_email},
+        {"$set": update_data},
+        upsert=True
+    )
+    
+    return await db.coach_subscriptions.find_one({"coachEmail": coach_email}, {"_id": 0})
+
+# ==================== SERVICE ACCESS VERIFICATION ====================
+# Business: Fonction centrale pour vérifier l'accès aux services
+
+@api_router.get("/verify-service-access/{service_name}")
+async def verify_service_access(service_name: str):
+    """
+    Vérifie si un service est accessible pour le coach actuel.
+    
+    Logique de vérification (BOTH conditions must be true):
+    1. Feature flag global activé (Super Admin)
+    2. Coach a l'abonnement correspondant
+    
+    Args:
+        service_name: "audio", "video", "streaming"
+    
+    Returns:
+        {
+            "hasAccess": bool,
+            "reason": str,
+            "featureFlagEnabled": bool,
+            "coachHasSubscription": bool
+        }
+    """
+    # Mapper les noms de service aux champs
+    service_map = {
+        "audio": ("AUDIO_SERVICE_ENABLED", "hasAudioService"),
+        "video": ("VIDEO_SERVICE_ENABLED", "hasVideoService"),
+        "streaming": ("STREAMING_SERVICE_ENABLED", "hasStreamingService")
+    }
+    
+    if service_name not in service_map:
+        raise HTTPException(status_code=400, detail=f"Service inconnu: {service_name}")
+    
+    flag_field, sub_field = service_map[service_name]
+    
+    # 1. Vérifier le feature flag global
+    flags = await db.feature_flags.find_one({"id": "feature_flags"}, {"_id": 0})
+    feature_enabled = flags.get(flag_field, False) if flags else False
+    
+    # 2. Vérifier l'abonnement du coach
+    coach_auth = await db.coach_auth.find_one({"id": "coach_auth"}, {"_id": 0})
+    coach_email = coach_auth.get("email", "coach@afroboost.com") if coach_auth else "coach@afroboost.com"
+    
+    subscription = await db.coach_subscriptions.find_one({"coachEmail": coach_email}, {"_id": 0})
+    coach_has_service = subscription.get(sub_field, False) if subscription else False
+    
+    # Déterminer l'accès et la raison
+    has_access = feature_enabled and coach_has_service
+    
+    if not feature_enabled:
+        reason = f"Service {service_name} désactivé globalement (contacter l'administrateur)"
+    elif not coach_has_service:
+        reason = f"Votre abonnement n'inclut pas le service {service_name}"
+    else:
+        reason = "Accès autorisé"
+    
+    return {
+        "hasAccess": has_access,
+        "reason": reason,
+        "featureFlagEnabled": feature_enabled,
+        "coachHasSubscription": coach_has_service,
+        "service": service_name
+    }
+
 # ==================== EMAILJS CONFIG (MongoDB) ====================
 
 class EmailJSConfig(BaseModel):
