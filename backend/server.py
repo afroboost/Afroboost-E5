@@ -191,6 +191,9 @@ class ReservationCreate(BaseModel):
     variantsText: Optional[str] = None
     shippingAddress: Optional[str] = None
     isProduct: bool = False
+    # Multi-date selection support
+    selectedDates: Optional[List[str]] = None  # Array of ISO date strings
+    selectedDatesText: Optional[str] = None  # Formatted text of selected dates
 
 class DiscountCode(BaseModel):
     model_config = ConfigDict(extra="ignore")
