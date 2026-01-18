@@ -571,7 +571,7 @@ Application de réservation de casques audio pour des cours de fitness Afroboost
 ---
 
 ## Credentials
-- **Coach Login**: coach@afroboost.com / afroboost123
+- **Coach Login**: Uniquement via Google OAuth avec l'email `contact.artboost@gmail.com`
 - **Coach Access**: 3 clics rapides sur "© Afroboost 2026"
 
 ---
