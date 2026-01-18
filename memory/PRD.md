@@ -471,6 +471,15 @@ Application de réservation de casques audio pour des cours de fitness Afroboost
   - **Impact** : Offres, produits et cours décochés dans l'admin sont maintenant correctement masqués
   - **Manifest PWA dynamique** : `/api/manifest.json` utilise `appName` et `logoUrl` du concept
   - **Tests** : 15/15 tests backend pytest + 11/11 tests frontend passés
+- [x] **Sélection de Dates Multiples pour Réservations (18 Jan 2026)**:
+  - **Logique toggle** : Clic ajoute une date, re-clic la retire (sélection multiple)
+  - **Style sélection** : Bordure rose (#D91CD2) et coche (✔) sur chaque date sélectionnée
+  - **Affichage résumé** : Section "📅 Dates sélectionnées (N)" avec badges des dates choisies
+  - **Calcul prix** : Total = prix offre × nombre de dates (ex: 3 dates × 30 CHF = 90 CHF)
+  - **Section offres** : Visible uniquement si au moins une date est sélectionnée
+  - **Backend** : Modèles `Reservation` et `ReservationCreate` mis à jour avec `selectedDates: List[str]` et `selectedDatesText: str`
+  - **UNE seule réservation** : Créée avec le tableau de toutes les dates sélectionnées
+  - **Tests** : 8/8 tests backend pytest + 100% tests frontend passés
 
 ### P1 - À faire
 - [x] ~~**CRITICAL: Refactoring de App.js**~~ - ✅ COMPLÉTÉ - App.js réduit de 52%
