@@ -566,6 +566,16 @@ Application de réservation de casques audio pour des cours de fitness Afroboost
   - **Architecture** : Composants reçoivent données via props, logique métier reste dans App.js
   - **Protocole anti-casse** : Aucune modification de `totalPrice`, `handleBooking`, `TwintButton`
   - **Tests de régression** : 7/7 vérifications passées (sessions, dates, icônes audio, offres, prix, boutons)
+- [x] **Espace Dédié Coachs - Multi-tenant (19 Jan 2026)**:
+  - **Authentification** : Google OAuth pour tous les coachs enregistrés (pas uniquement Super Admin)
+  - **Filtrage données** : Champs `authorEmail` ajoutés aux modèles `Course` et `Offer`
+  - **Endpoints filtrés** : `/api/coach/courses`, `/api/coach/offers`, `/api/coach/reservations`
+  - **Interface conditionnelle** :
+    - Super Admin (`contact.artboost@gmail.com`) : Tous les onglets + gestion des coachs
+    - Coachs normaux : Uniquement Réservations, Cours, Offres (onglets concept, payments, codes, campaigns masqués)
+  - **Nouvel onglet "👥 Coachs"** : Permet au Super Admin d'enregistrer/supprimer des coachs
+  - **Sécurité** : Un coach ne voit QUE ses propres cours/offres + ceux sans auteur assigné
+  - **Tests** : Filtrage vérifié (coach.test@example.com voit 5 cours, autre.coach voit 4)
 
 ### P1 - À faire
 - [x] ~~**CRITICAL: Refactoring de App.js**~~ - ✅ COMPLÉTÉ - App.js réduit de 52%
@@ -574,6 +584,7 @@ Application de réservation de casques audio pour des cours de fitness Afroboost
 - [x] ~~**Duplication cours**~~ - ✅ COMPLÉTÉ
 - [x] ~~**Séparation Cours/Produits**~~ - ✅ COMPLÉTÉ
 - [x] ~~**Archivage cours**~~ - ✅ COMPLÉTÉ
+- [x] ~~**Espace Dédié Coachs**~~ - ✅ COMPLÉTÉ
 - [ ] **Optimisation Backend MongoDB** - Appliquer pagination et projection sur les requêtes pour améliorer les performances en production.
 - [ ] Tests automatisés pour les composants extraits
 
@@ -587,7 +598,8 @@ Application de réservation de casques audio pour des cours de fitness Afroboost
 ---
 
 ## Credentials
-- **Coach Login**: Uniquement via Google OAuth avec l'email `contact.artboost@gmail.com`
+- **Super Admin**: Uniquement via Google OAuth avec l'email `contact.artboost@gmail.com`
+- **Coachs**: Via Google OAuth, doivent être enregistrés par le Super Admin dans l'onglet "👥 Coachs"
 - **Coach Access**: 3 clics rapides sur "© Afroboost 2026"
 
 ---
