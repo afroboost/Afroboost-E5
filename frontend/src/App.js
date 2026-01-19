@@ -33,6 +33,11 @@ import { ChatWidget } from "./components/ChatWidget";
 import { CoachDashboard } from "./components/CoachDashboard";
 import CoachLoginModal from "./components/CoachLoginModal";
 import { useDataCache, invalidateCache } from "./hooks/useDataCache";
+// Composants extraits pour réduire la taille de App.js
+import { SessionList } from "./components/SessionList";
+import { OffersSliderAutoPlay } from "./components/OffersSlider";
+import { BookingForm } from "./components/BookingForm";
+import { AudioPlayer } from "./components/AudioPlayer";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
