@@ -110,6 +110,7 @@ class Offer(BaseModel):
     tva: float = 0.0  # TVA percentage
     shippingCost: float = 0.0  # Frais de port
     stock: int = -1  # -1 = unlimited
+    authorEmail: Optional[str] = None  # Email du coach propriétaire
 
 class OfferCreate(BaseModel):
     name: str
@@ -127,6 +128,7 @@ class OfferCreate(BaseModel):
     tva: float = 0.0
     shippingCost: float = 0.0
     stock: int = -1
+    authorEmail: Optional[str] = None  # Email du coach propriétaire
 
 class User(BaseModel):
     model_config = ConfigDict(extra="ignore")
