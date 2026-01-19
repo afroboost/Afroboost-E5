@@ -3714,11 +3714,20 @@ function App() {
                 <span className="text-white" style={{ opacity: 0.3 }}>|</span>
               </>
             )}
+            {/* Lien Connexion Coach - Visible pour tous */}
+            <button 
+              onClick={handleCopyrightClick}
+              className="text-white hover:text-pink-400 transition-colors"
+              style={{ opacity: 0.6, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 'inherit', fontSize: 'inherit', letterSpacing: 'inherit' }}
+              data-testid="footer-coach-login"
+            >
+              Connexion Coach
+            </button>
+            <span className="text-white" style={{ opacity: 0.3 }}>|</span>
             <span 
-              onClick={handleCopyrightClick} 
-              className="copyright-secret text-white cursor-pointer" 
+              className="text-white" 
               style={{ opacity: 0.4 }}
-              data-testid="copyright-secret"
+              data-testid="copyright-text"
             >
               {t('copyright')}
             </span>
