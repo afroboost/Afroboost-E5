@@ -260,9 +260,20 @@ const CoachDashboard = ({ t, lang, onBack, onLogout, coachUser }) => {
   const loadReservations = async (page = 1, limit = 20) => {
     setLoadingReservations(true);
     try {
-      const res = await axios.get(`${API}/reservations?page=${page}&limit=${limit}`);
-      setReservations(res.data.data);
-      setReservationPagination(res.data.pagination);
+      // Utiliser l'endpoint filtré pour les coachs non-Super Admin
+      const endpoint = isSuperAdmin 
+        ? `${API}/reservations?page=${page}&limit=${limit}`
+        : `${API}/coach/reservations?coach_email=${encodeURIComponent(coachEmail)}&page=${page}&limit=${limit}`;
+      const res = await axios.get(endpoint);
+      
+      // L'endpoint filtré retourne un format différent
+      if (isSuperAdmin) {
+        setReservations(res.data.data);
+        setReservationPagination(res.data.pagination);
+      } else {
+        setReservations(res.data.reservations || []);
+        setReservationPagination(res.data.pagination || { page: 1, limit: 20, total: 0, pages: 0 });
+      }
     } catch (err) {
       console.error("Error loading reservations:", err);
     } finally {
@@ -273,36 +284,76 @@ const CoachDashboard = ({ t, lang, onBack, onLogout, coachUser }) => {
   useEffect(() => {
     const loadData = async () => {
       try {
-        // Charger les réservations avec pagination (20 dernières)
-        const resPromise = axios.get(`${API}/reservations?page=1&limit=20`);
-        const [res, crs, off, usr, lnk, cpt, cds] = await Promise.all([
-          resPromise, axios.get(`${API}/courses`), axios.get(`${API}/offers`),
-          axios.get(`${API}/users`), axios.get(`${API}/payment-links`), axios.get(`${API}/concept`), 
-          axios.get(`${API}/discount-codes`)
-        ]);
+        // Construire les URLs selon le type d'utilisateur
+        const reservationsUrl = isSuperAdmin 
+          ? `${API}/reservations?page=1&limit=20`
+          : `${API}/coach/reservations?coach_email=${encodeURIComponent(coachEmail)}&page=1&limit=20`;
+        const coursesUrl = isSuperAdmin 
+          ? `${API}/courses`
+          : `${API}/coach/courses?coach_email=${encodeURIComponent(coachEmail)}`;
+        const offersUrl = isSuperAdmin 
+          ? `${API}/offers`
+          : `${API}/coach/offers?coach_email=${encodeURIComponent(coachEmail)}`;
+        
+        // Charger les données
+        const resPromise = axios.get(reservationsUrl);
+        
+        // Les données globales (concept, payments, codes) sont chargées uniquement pour le Super Admin
+        const basePromises = [
+          resPromise, 
+          axios.get(coursesUrl), 
+          axios.get(offersUrl),
+          axios.get(`${API}/users`)
+        ];
+        
+        if (isSuperAdmin) {
+          basePromises.push(
+            axios.get(`${API}/payment-links`), 
+            axios.get(`${API}/concept`), 
+            axios.get(`${API}/discount-codes`)
+          );
+        }
+        
+        const results = await Promise.all(basePromises);
+        const [res, crs, off, usr] = results;
+        
         // Réservations avec pagination
-        setReservations(res.data.data);
-        setReservationPagination(res.data.pagination);
+        if (isSuperAdmin) {
+          setReservations(res.data.data || []);
+          setReservationPagination(res.data.pagination || { page: 1, limit: 20, total: 0, pages: 0 });
+        } else {
+          setReservations(res.data.reservations || []);
+          setReservationPagination(res.data.pagination || { page: 1, limit: 20, total: 0, pages: 0 });
+        }
         
-        setCourses(crs.data); setOffers(off.data); setUsers(usr.data);
-        setPaymentLinks(lnk.data); setConcept(cpt.data); setDiscountCodes(cds.data);
+        setCourses(crs.data || []); 
+        setOffers(off.data || []); 
+        setUsers(usr.data || []);
         
-        // === SANITIZE DATA: Nettoyer automatiquement les données fantômes ===
-        try {
-          const sanitizeResult = await axios.post(`${API}/sanitize-data`);
-          if (sanitizeResult.data.stats?.codes_cleaned > 0) {
-            console.log(`🧹 Nettoyage: ${sanitizeResult.data.stats.codes_cleaned} codes promo nettoyés`);
-            // Recharger les codes promo après nettoyage
-            const updatedCodes = await axios.get(`${API}/discount-codes`);
-            setDiscountCodes(updatedCodes.data);
+        // Données Super Admin uniquement
+        if (isSuperAdmin && results.length > 4) {
+          const [, , , , lnk, cpt, cds] = results;
+          setPaymentLinks(lnk.data || {}); 
+          setConcept(cpt.data || {}); 
+          setDiscountCodes(cds.data || []);
+          
+          // === SANITIZE DATA: Nettoyer automatiquement les données fantômes ===
+          try {
+            const sanitizeResult = await axios.post(`${API}/sanitize-data`);
+            if (sanitizeResult.data.stats?.codes_cleaned > 0) {
+              console.log(`🧹 Nettoyage: ${sanitizeResult.data.stats.codes_cleaned} codes promo nettoyés`);
+              // Recharger les codes promo après nettoyage
+              const updatedCodes = await axios.get(`${API}/discount-codes`);
+              setDiscountCodes(updatedCodes.data);
+            }
+          } catch (sanitizeErr) {
+            console.warn("Sanitize warning:", sanitizeErr);
           }
-        } catch (sanitizeErr) {
-          console.warn("Sanitize warning:", sanitizeErr);
         }
       } catch (err) { console.error("Error:", err); }
     };
     loadData();
-  }, []);
+  }, [isSuperAdmin, coachEmail]);
 
   // Fonction de nettoyage manuel (peut être appelée depuis l'interface)
   const manualSanitize = async () => {
