@@ -2622,8 +2622,10 @@ function App() {
                         setSelectedCourse(course);
                         setSelectedDates([dateISO]);
                       }
-                      // Ouvrir le lecteur audio
-                      setShowAudioPlayer(true);
+                      // Activer le mode audio (permute vidéo → audio)
+                      setIsAudioMode(true);
+                      // Scroll vers le lecteur audio en haut
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
                     }}
                     className="audio-icon-session"
                     style={{
