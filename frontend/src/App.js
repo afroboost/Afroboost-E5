@@ -37,7 +37,7 @@ import { useDataCache, invalidateCache } from "./hooks/useDataCache";
 import { SessionList } from "./components/SessionList";
 import { OffersSliderAutoPlay } from "./components/OffersSlider";
 import { BookingForm } from "./components/BookingForm";
-import { AudioPlayer } from "./components/AudioPlayer";
+// AudioPlayer est maintenant intégré dans HeroMediaWithAudio (pas d'import séparé)
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
