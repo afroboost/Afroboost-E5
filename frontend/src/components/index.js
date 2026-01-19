@@ -3,6 +3,16 @@
 
 // === COMPOSANTS OFFRES ===
 export { OfferCard, OfferCardSlider } from './OfferCard';
+export { OffersSliderAutoPlay } from './OffersSlider';
+
+// === SESSIONS / COURS ===
+export { SessionList } from './SessionList';
+
+// === FORMULAIRE DE RÉSERVATION ===
+export { BookingForm } from './BookingForm';
+
+// === LECTEUR AUDIO ===
+export { AudioPlayer } from './AudioPlayer';
 
 // === SCANNER QR ===
 export { QRScannerModal } from './QRScanner';
