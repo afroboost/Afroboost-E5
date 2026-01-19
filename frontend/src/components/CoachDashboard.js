@@ -757,7 +757,12 @@ const CoachDashboard = ({ t, lang, onBack, onLogout, coachUser }) => {
   const addCourse = async (e) => {
     e.preventDefault();
     if (!newCourse.name) return;
-    const response = await axios.post(`${API}/courses`, newCourse);
+    // Ajouter l'email de l'auteur si ce n'est pas le Super Admin
+    const courseData = {
+      ...newCourse,
+      authorEmail: isSuperAdmin ? null : coachEmail  // null = visible par tous les coachs
+    };
+    const response = await axios.post(`${API}/courses`, courseData);
     setCourses([...courses, response.data]);
     setNewCourse({ name: "", weekday: 0, time: "18:30", locationName: "", mapsUrl: "" });
   };
